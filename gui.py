@@ -98,7 +98,7 @@ def draw_square(screen, coord, length, width, color):
 
 
 def draw_grid(screen):
-    
+        
     #drawing the grid
     draw_square(screen,(200, 100), 405, 5, (0, 0, 0))
     for i in range(200, 605, 45):
