@@ -159,20 +159,21 @@ class game:
             if not self.solved:
                 message = self.font.render("You win! The game will close in " + str(self.timer) + " seconds...", True, (0, 0, 0))
                 self.screen.blit(message, (60, 50))
+                pygame.display.flip()
                 sleep(1)
                 self.timer -= 1
             else:
-                message = self.font.render("Solved! the game will close in " + str(self.timer) + " seconds...", True, (0, 0, 0))
+                message = self.font.render("Solved! The game will close in " + str(self.timer) + " seconds...", True, (0, 0, 0))
                 self.screen.blit(message, (60, 50))
+                pygame.display.flip()
                 sleep(1)
                 self.timer -= 1
 
         #lose condition
-        elif self.g_state == -1 and not self.solving:
-            self.solving = True
-            self.g_solve()
+        elif self.g_state == -1 and self.solved:
             message = self.font.render("You lost! The game will close in " + str(self.timer) + " seconds...", True, (0, 0, 0))
             self.screen.blit(message, (60, 50))
+            pygame.display.flip()
             sleep(1)
             self.timer -= 1
         pygame.display.flip()
@@ -192,8 +193,8 @@ class game:
 
     def g_solve(self):
         if is_solved(self.board):
-            self.solving = False
             self.solved = True
+            self.solving = False
             return
         else:
             coord = find_unsolved(self.board)
@@ -232,10 +233,9 @@ def main():
                     else:
                         sudoku.tries -= 1
                 number = -1
-        sudoku.draw()
         
         #win condition
-        if is_solved(sudoku.board):
+        if is_solved(sudoku.board) and sudoku.g_state != -1:
             sudoku.g_state = 1
             if sudoku.timer == 0:
                 sleep(1)
@@ -244,11 +244,16 @@ def main():
         
        #lose condition
         if sudoku.tries <= 0:
-           sudoku.g_state = -1
-           if sudoku.timer == 0:
+            sudoku.g_state = -1
+            if not sudoku.solved:
+                sudoku.solving = True
+                sudoku.g_solve()
+                sudoku.draw()
+            if sudoku.timer == 0:
                 sleep(1)
                 sudoku.quit()
                 continue
+        sudoku.draw()
 
         if coord !=None:
             s_coord = sudoku.get_square(coord)
