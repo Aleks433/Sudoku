@@ -6,20 +6,21 @@ from copy import deepcopy
 import sudoku_generator
 
 #functions responsible for solving the sudoku grid
+#checking if the board is solved
 def is_solved(board):
     for i in board:
         if 0 in i:
             return False
     return True
 
-
+#finding the coordinates of the upcoming unsolved space
 def find_unsolved(board):
     for i in range(9):
         for j in range(9):
             if board[i][j] == 0:
                 return (i,j)
 
-
+#finding out what are the possible answers(returns [] if there is no possible answer)
 def find_answers(board, x, y):
     answers = list(range(1, 10))
     n_answers = set()
@@ -58,7 +59,7 @@ def find_answers(board, x, y):
         answers.remove(i)
     return answers
 
-
+#main board-solving function(backtracking included)
 def solve(o_board):
     board = deepcopy(o_board)
     if is_solved(board):
@@ -73,7 +74,7 @@ def solve(o_board):
                 return n_board
             board[coord[0]][coord[1]] = 0
 
-
+#game class with all the attributes and states...easier to code without global variables
 class game:
 
     solving = False
@@ -90,7 +91,8 @@ class game:
     selected = -1
     timer = 5
     font = None
-
+    
+    #initializing the the library, screen variable and font
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((800, 600))
@@ -101,6 +103,7 @@ class game:
             self.images[-1] = pygame.transform.scale(self.images[-1], (30,30))
         self.running = True
             
+    #intermediary function made to draw squares
     def draw_square(self, coord, length, width, color):    
         A = coord
         B = (coord[0] + length,coord[1])
@@ -111,6 +114,7 @@ class game:
         pygame.draw.line(self.screen, color, D, B, width)
         pygame.draw.line(self.screen, color, D, C, width)
 
+    #drawing the whole 9x9 grid
     def draw_grid(self):
 
         #drawing the grid
@@ -128,18 +132,20 @@ class game:
         for j in range(235,505,135):
             pygame.draw.line(self.screen,(0,0,0), (200,j), (605,j), 5)    
 
+    #drawing the numbers
     def draw_board(self):
         for i in range(9):
             for j in range(9):
                 if self.board[i][j] != 0:
                     self.screen.blit(self.images[self.board[i][j] - 1], (200 + 45*i + 5, 100 + 45*j + 5))
 
+    #drawing the selected space(might need some improvement for a feature)
     def draw_selected(self, color = (255, 0, 0)):
         try:
             self.draw_square((200 + self.selected[0] * 45, 100 + self.selected[1] * 45), 43, 2, color)
         except:
             pass
-        
+    #main drawing function(it uses all the other intermediary functions)
     def draw(self):
         self.screen.fill((255, 255, 255))
         self.draw_grid()
@@ -176,6 +182,7 @@ class game:
             pygame.display.flip()
             sleep(1)
             self.timer -= 1
+        #updating the frame
         pygame.display.flip()
 
     def get_square(self, coord):
@@ -186,11 +193,13 @@ class game:
             return [x_coord, y_coord]
         else:
             return None
-
+    
+    #quiting the game
     def quit(self):
         pygame.quit()
         self.running = False
-
+    
+    #graphic solver(to visualize the way a backtracking algorithm solves a sudoku board)
     def g_solve(self):
         if is_solved(self.board):
             self.solved = True
@@ -217,6 +226,8 @@ def main():
     sudoku = game()
     number = -1
     coord = None
+
+    #game loop
     while sudoku.running:
         #writing the numbers
         if number != -1:
@@ -253,8 +264,11 @@ def main():
                 sleep(1)
                 sudoku.quit()
                 continue
+        
+        #updating the frame
         sudoku.draw()
 
+        #getting the board coordinates from the mouse input
         if coord !=None:
             s_coord = sudoku.get_square(coord)
             if s_coord != None and sudoku.o_board[s_coord[0]][s_coord[1]] == 0:
@@ -263,6 +277,8 @@ def main():
                 else:
                     sudoku.selected = s_coord
                 coord = None
+        
+        #ciclying trough game events(key presses, mouse clicks, quitting the program)
         for event in pygame.event.get():
 
             #quit button
