@@ -49,8 +49,8 @@ def find_answers(board, x, y):
         if board[x][j] != 0:
             n_answers.add(board[x][j])
     #checking what numbers are in the square
-    x_square = x//3
-    y_square = y//3
+    x_square = x // 3
+    y_square = y // 3
     for i in range(x_square*3, x_square*3 + 3):
         for j in range(y_square*3, y_square*3 + 3):
             if board[i][j] != 0:
@@ -83,13 +83,15 @@ class game:
     o_board = sudoku_generator.new_grid()
     s_board = solve(o_board) 
     board = o_board.copy() 
+    fake_board = deepcopy(o_board)
     tries = 5
     g_state = 0
     coord = None
     running = False
-    images = []
-    selected = -1
+    p_selected = None
+    s_selected = None
     timer = 5
+    n_font = None
     font = None
     
     #initializing the the library, screen variable and font
@@ -98,61 +100,62 @@ class game:
         self.screen = pygame.display.set_mode((800, 600))
         pygame.display.set_caption("Sudoku")
         self.font = pygame.font.Font("freesansbold.ttf", 32)
-        for i in range(1,10):
-            self.images.append(pygame.image.load(os.path.join('Images', 'Number ' + str(i) + '.png')))
-            self.images[-1] = pygame.transform.scale(self.images[-1], (30,30))
+        self.n_font = pygame.font.Font("freesansbold.ttf", 22)
         self.running = True
             
     #intermediary function made to draw squares
     def draw_square(self, coord, length, width, color):    
         A = coord
-        B = (coord[0] + length,coord[1])
-        C = (coord[0], coord[1]+length)
-        D = (coord[0] + length,coord[1] + length)
+        B = (coord[0] + length, coord[1])
+        C = (coord[0], coord[1] + length)
+        D = (coord[0] + length, coord[1] + length)
         pygame.draw.line(self.screen, color, A, B, width)
         pygame.draw.line(self.screen, color, A, C, width)
         pygame.draw.line(self.screen, color, D, B, width)
         pygame.draw.line(self.screen, color, D, C, width)
 
-    #drawing the whole 9x9 grid
+    #drawing the inner 9x9 grid
     def draw_grid(self):
 
         #drawing the grid
         self.draw_square((200, 100), 405, 5, (0, 0, 0))
         for i in range(200, 605, 45):
             for j in range(100, 505, 45):
-                self.draw_square((i,j), 45, 2, (0,0,0))
+                self.draw_square((i, j), 45, 2, (0, 0, 0))
         
         #square borders
         #column
         for i in range(335, 605, 135):
-            pygame.draw.line(self.screen, (0,0,0), (i,100), (i,505), 5)
+            pygame.draw.line(self.screen, (0, 0, 0), (i, 100), (i, 505), 5)
         
         #line
-        for j in range(235,505,135):
-            pygame.draw.line(self.screen,(0,0,0), (200,j), (605,j), 5)    
+        for j in range(235, 505, 135):
+            pygame.draw.line(self.screen, (0, 0, 0), (200, j), (605, j), 5)    
 
     #drawing the numbers
     def draw_board(self):
         for i in range(9):
             for j in range(9):
                 if self.board[i][j] != 0:
-                    self.screen.blit(self.images[self.board[i][j] - 1], (200 + 45*i + 5, 100 + 45*j + 5))
-
+                    self.screen.blit(self.n_font.render(str(self.board[i][j]), True, (0, 0, 0)), (200 + 45 * i + 5, 100 + 45 * j + 5))
+                elif self.fake_board[i][j] != 0:
+                    self.screen.blit(self.n_font.render(str(self.fake_board[i][j]), True, (0, 255, 0)), (200 + 45 * i + 25, 100 + 45 * j + 20))
     #drawing the selected space(might need some improvement for a feature)
-    def draw_selected(self, color = (255, 0, 0)):
-        try:
-            self.draw_square((200 + self.selected[0] * 45, 100 + self.selected[1] * 45), 43, 2, color)
-        except:
+    def draw_selected(self):
+        if self.p_selected == None:
             pass
+        else:
+            self.draw_square((200 + self.p_selected[0] * 45, 100 + self.p_selected[1] * 45), 43, 2, (255, 0, 0))
+        if self.s_selected == None:
+            pass
+        else:
+            self.draw_square((200 + self.s_selected[0] * 45, 100 + self.s_selected[1] * 45), 43, 2, (0, 255, 0))
+                
     #main drawing function(it uses all the other intermediary functions)
     def draw(self):
         self.screen.fill((255, 255, 255))
         self.draw_grid()
-        if self.solving and self.g_state != -1:
-            self.draw_selected((0, 255, 0))
-        else:
-            self.draw_selected()
+        self.draw_selected()
         self.draw_board()
         message = self.font.render("Mistakes: ", True, (0, 0, 0))
         cross = self.font.render("X", True, (255, 0, 0))
@@ -188,8 +191,8 @@ class game:
     def get_square(self, coord):
         #checking wether the coordonates are in the grid
         if coord[0] >= 200 and coord[0] <= 605 and coord[1] >= 100 and coord[1] <= 505:
-            x_coord = (coord[0] - 200)//45
-            y_coord = (coord[1] - 100)//45
+            x_coord = (coord[0] - 200) // 45
+            y_coord = (coord[1] - 100) // 45
             return [x_coord, y_coord]
         else:
             return None
@@ -204,20 +207,21 @@ class game:
         if is_solved(self.board):
             self.solved = True
             self.solving = False
+            self.p_selected = None
             return
         else:
             coord = find_unsolved(self.board)
             answers = find_answers(self.board, coord[0], coord[1])
             for i in answers:
                 self.draw()
-                self.selected = [coord[0], coord[1]]
+                self.p_selected = [coord[0], coord[1]]
                 self.board[coord[0]][coord[1]] = i
                 sleep(0.15)
                 self.g_solve()
                 if self.board == self.s_board:
                     break 
                 self.board[coord[0]][coord[1]] = 0
-                self.selected = [coord[0], coord[1]]
+                self.p_selected = [coord[0], coord[1]]
                 self.draw()
                 sleep(0.15)
         self.selected = None
@@ -225,25 +229,35 @@ class game:
 def main():
     sudoku = game()
     number = -1
-    coord = None
+    coord = {
+        "coordinates" : None,
+        "type" : None
+    }
 
     #game loop
     while sudoku.running:
+
         #writing the numbers
         if number != -1:
-            if sudoku.selected != None:
-                
+            #it's a primary box selection
+            if sudoku.p_selected != None:
+        
                 #checking if the square is editable
-                if sudoku.o_board[sudoku.selected[0]][sudoku.selected[1]] == 0:
-
+                if sudoku.o_board[sudoku.p_selected[0]][sudoku.p_selected[1]] == 0:
                     #checking if it's a valid option
-                    if number == sudoku.s_board[sudoku.selected[0]][sudoku.selected[1]]:
-                        sudoku.board[sudoku.selected[0]][sudoku.selected[1]] = number
-                        sudoku.o_board[sudoku.selected[0]][sudoku.selected[1]] = number
-                        sudoku.selected = None
+                    if number == sudoku.s_board[sudoku.p_selected[0]][sudoku.p_selected[1]]:
+                        sudoku.board[sudoku.p_selected[0]][sudoku.p_selected[1]] = number
+                        sudoku.o_board[sudoku.p_selected[0]][sudoku.p_selected[1]] = number
+                        sudoku.fake_board[sudoku.p_selected[0]][sudoku.p_selected[1]] = number
+                        sudoku.p_selected = None
                     else:
                         sudoku.tries -= 1
-                number = -1
+
+            #it's a secondary box selection
+            elif sudoku.s_selected != None:
+                if sudoku.o_board[sudoku.s_selected[0]][sudoku.s_selected[1]] == 0:
+                    sudoku.fake_board[sudoku.s_selected[0]][sudoku.s_selected[1]] = number
+            number = -1
         
         #win condition
         if is_solved(sudoku.board) and sudoku.g_state != -1:
@@ -269,15 +283,24 @@ def main():
         sudoku.draw()
 
         #getting the board coordinates from the mouse input
-        if coord !=None:
-            s_coord = sudoku.get_square(coord)
+        if coord["coordinates"] != None:
+            s_coord = sudoku.get_square(coord["coordinates"])
             if s_coord != None and sudoku.o_board[s_coord[0]][s_coord[1]] == 0:
-                if s_coord == sudoku.selected:
-                    sudoku.selected = None
-                else:
-                    sudoku.selected = s_coord
-                coord = None
-        
+                if coord["type"] == "primary":
+                        if s_coord == sudoku.p_selected:
+                            sudoku.p_selected = None
+                        else:
+                            sudoku.s_selected = None
+                            sudoku.p_selected = s_coord
+                elif coord["type"] == "secondary":
+                    if s_coord == sudoku.s_selected:
+                        sudoku.s_selected = None
+                    else:
+                        sudoku.p_selected = None
+                        sudoku.s_selected = s_coord
+            coord.update({"coordinates" : None})
+            coord.update({"type" : None})
+
         #ciclying trough game events(key presses, mouse clicks, quitting the program)
         for event in pygame.event.get():
 
@@ -288,7 +311,12 @@ def main():
             
             #selecting the squares
             if event.type == pygame.MOUSEBUTTONDOWN:
-                coord = pygame.mouse.get_pos()
+                coord.update({"coordinates" : pygame.mouse.get_pos()})
+                mouse = pygame.mouse.get_pressed()
+                if mouse[0]:
+                   coord.update({"type" : "primary"})
+                elif mouse[2]:
+                    coord.update({"type" : "secondary"})
 
             #getting the number input
             if event.type == pygame.KEYDOWN:
